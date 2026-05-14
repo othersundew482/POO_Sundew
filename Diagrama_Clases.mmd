@@ -1,0 +1,201 @@
+classDiagram
+    direction TB
+
+    %% ==================== ENUMS ====================
+    class Sexo {
+        <<enum>>
+        MACHO
+        HEMBRA
+    }
+
+    class TipoCadaver {
+        <<enum>>
+        ANIMAL
+        HUEVO
+    }
+
+    class TipoMensaje {
+        <<enum>>
+        COMIDA
+        DEPREDADOR
+        PRESA
+    }
+
+    %% ==================== CLASES BASE ====================
+    class EntidadBase {
+        <<abstract>>
+        +posX: int
+        +posY: int
+        +peso: float
+        +actuar(contexto: Contexto)
+    }
+
+    class Planta {
+        +PesoInicial: float
+        +AumentoPorCrecimiento: float
+        +PesoDeExtincion: float
+        +crecer()
+        +serComida(cantidad: float)
+        +estaExtinta() bool
+    }
+
+    class Animal {
+        <<abstract>>
+        +especie: string
+        +sexo: Sexo
+        +edad: int
+        +PesoInicial: float
+        +PesoMax: float
+        +PesoMin: float
+        +DisminucionPorNoComer: float
+        +PerdidaPorAtaque: float
+        +PerdidaPorDefensa: float
+        +EdadAdulta: int
+        +EdadMax: int
+        +alcance: int
+        +vision: int
+        +FuerzaAtaque: float
+        +FuerzaDefensa: float
+        +cuidandoHuevo: bool
+        +alimentarse(destino: EntidadBase)
+        +aparearse(pareja: Animal)
+        +desplazarse(destinoX: int, destinoY: int)
+        +atacar(presa: Animal)
+        +morir() Cadaver
+        +envejecer()
+        +disminuirPesoPorNoComer()
+        +puedeComer(objetivo: EntidadBase) bool
+        +estaEnRangoVision(objetivo: EntidadBase) bool
+        +estaAlAlcance(objetivo: EntidadBase) bool
+    }
+
+    %% ==================== ESPECIES ====================
+    class Braquiosaurio {
+        +prioridadComer()
+        +avisarComida(comida: EntidadBase)
+        +desplazarseHaciaComida()
+        +desplazarseHaciaOtroBraquio()
+    }
+
+    class Triceratops {
+        +inspeccionarDepredadores()
+        +avisarDepredador(depredador: Animal)
+        +defensaEnManada(atacante: Animal) float
+        +alejarseDeDepredador()
+    }
+
+    class Velociraptor {
+        +cazarEnManada(presa: Animal) float
+        +compartirBotin()
+        +desplazarseHaciaPresa()
+        +avisarPresa(presa: Animal)
+    }
+
+    class Pterodactilo {
+        +volarADestino(destinoX: int, destinoY: int)
+        +comerCarrona(cadaver: Cadaver)
+        +comerHuevoAjeno(huevo: Huevo)
+    }
+
+    class TRex {
+        +pelearPorPareja(rival: TRex)
+        +priorizarCarrona()
+    }
+
+    %% ==================== HUEVO, CADAVER ====================
+    class Huevo {
+        +especie: string
+        +PesoInicialHuevo: float
+        +pesoActual: float
+        +madre: Animal
+        +estaProtegido: bool
+        +crecer()
+        +nacer() Animal
+        +obtenerFuerzaDefensa() float
+        +serComido(cantidad: float)
+        +romper() RestosHuevo
+    }
+
+    class Cadaver {
+        +tipoOrigen: TipoCadaver
+        +especieOrigen: string
+        +DisminucionPorDescomposicion: float
+        +PesoDeExtincion: float
+        +deteriorarse()
+        +estaExtinto() bool
+        +serComido(cantidad: float)
+    }
+
+    class RestosHuevo {
+        +huevoOriginal: Huevo
+    }
+
+    %% ==================== TERRENO Y SIMULADOR ====================
+    class Terreno {
+        -celdas: List~List~EntidadBase~~
+        +obtenerEntidad(x: int, y: int) EntidadBase
+        +colocarEntidad(x: int, y: int, entidad: EntidadBase)
+        +removerEntidad(x: int, y: int)
+        +celdaVacia(x: int, y: int) bool
+        +caminoLibre(origen: EntidadBase, destino: EntidadBase, alcance: int) bool
+    }
+
+    class Simulador {
+        -terreno: Terreno
+        -cicloActual: int
+        -ordenAcciones: List~EntidadBase~
+        -fenomenos: List~Fenomeno~
+        -historialEstados: Stack~EstadoParque~
+        +inicializar(parametros: dict)
+        +ejecutarCiclo()
+        +ejecutarAccion(entidad: EntidadBase)
+        +aplicarFenomenos()
+        +guardarEstado()
+        +restaurarEstadoAnterior()
+    }
+
+    %% ==================== FENÓMENOS ====================
+    class Fenomeno {
+        <<interface>>
+        +aplicar(terreno: Terreno)
+    }
+
+    class FenomenoNacerPlanta {
+        +aplicar(terreno: Terreno)
+    }
+
+    %% ==================== CONTEXTO Y MENSAJE ====================
+    class Contexto {
+        +terreno: Terreno
+        +ciclo: int
+        +mensajesPendientes: List~Mensaje~
+    }
+
+    class Mensaje {
+        +tipo: TipoMensaje
+        +posicionDestino: tuple~int,int~
+        +emisor: Animal
+        +receptores: List~Animal~
+    }
+
+    %% ==================== RELACIONES ====================
+    Planta --|> EntidadBase
+    Animal --|> EntidadBase
+    Braquiosaurio --|> Animal
+    Triceratops --|> Animal
+    Velociraptor --|> Animal
+    Pterodactilo --|> Animal
+    TRex --|> Animal
+    Huevo --|> EntidadBase
+    Cadaver --|> EntidadBase
+    RestosHuevo --|> Cadaver
+    FenomenoNacerPlanta ..|> Fenomeno
+
+    Animal "1" --> "0..1" Huevo : puede poner/cuidar
+    Animal "1" --> "0..1" Cadaver : genera al morir
+    Huevo "1" --> "0..1" RestosHuevo : se convierte al romperse
+    Huevo "1" --> "1" Animal : nace de
+    Simulador "1" --> "1" Terreno : contiene
+    Simulador "1" --> "0..*" Fenomeno : aplica
+    Simulador "1" --> "1" Contexto : usa
+    Contexto "1" --> "0..*" Mensaje : contiene
